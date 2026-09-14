@@ -1,0 +1,12 @@
+{
+  "name": "claude-mods-skill",
+  "owner": { "name": "BeLazy167" },
+  "description": "Skill for building Claude Mods (function-hook plugins) plus a starter example",
+  "plugins": [
+    {
+      "name": "claude-mods-skill",
+      "source": "./",
+      "description": "Skill: how to create a Claude Mod, with a copyable example"
+    }
+  ]
+}

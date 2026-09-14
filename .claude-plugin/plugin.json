@@ -1,0 +1,8 @@
+{
+  "name": "claude-mods-skill",
+  "version": "0.1.0",
+  "description": "A skill that teaches an agent to build Claude Mods: Claude Code plugins made of function hooks. Ships a copyable example mod.",
+  "author": { "name": "BeLazy167" },
+  "repository": "https://github.com/BeLazy167/claude-mods-skill",
+  "license": "MIT"
+}

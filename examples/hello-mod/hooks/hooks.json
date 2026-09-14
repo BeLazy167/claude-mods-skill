@@ -1,0 +1,4 @@
+{
+  "description": "One tool.call hook: log the tool name, deny rm -rf",
+  "modules": ["./register.ts"]
+}
