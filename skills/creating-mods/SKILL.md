@@ -21,18 +21,22 @@ The generated declarations are the only reference. The built-in
 2. **Copy the example.** Copy `examples/hello-mod/` from this plugin's root
    to the new plugin folder. Rename in `plugin.json`. It already has the
    three files a mod needs and a working `tool.call` hook.
-3. **Types.** In a session in that folder run `/plugin-types`. It writes
-   `.claude/types/claude-code.d.ts` from the running build. Read it for the
-   event's `e` shape, the `$` nouns, and the `tsconfig` in its header.
-   Never hand-edit it. Never commit it.
+3. **Types, when the hook body changes.** `/plugin-types` is an in-session
+   slash command with no CLI form. Run it in an interactive session in that
+   folder. It writes `.claude/types/claude-code.d.ts` from the running build.
+   Read it for the event's `e` shape, the `$` nouns, and the `tsconfig` in
+   its header. Skip this step if you only renamed the example. Never
+   hand-edit the file. Never commit it.
 4. **Write the hook.** One `on(event, matcher?, hook)` per event per module.
    Return without `next` to answer alone. `next(e)` to continue. Rewrite with
    `next({ ...e, ... })`.
 5. **Validate.** `claude plugin validate <folder>`. It prints what the module
    hooks and calls on `$`. It checks shape, not whether a noun exists.
-6. **Prove it fires from the CLI.** Run `examples/hello-mod/smoke.sh <folder> <plugin-name>`.
-   It runs `claude -p --plugin-dir` with a debug file and greps for
-   `hooks module <name> loaded`. No interactive session needed.
+6. **Prove it from the CLI.** Run `examples/hello-mod/smoke.sh <folder> <plugin-name>`.
+   It runs `claude -p --plugin-dir` with a debug file, greps for
+   `hooks module <name> loaded`, then asks for `rm -rf` on a temp file and
+   checks the file survived. A deny writes nothing to the debug log. Prove a
+   deny by its side effect, never by the log.
 7. **Iterate live.** `claude --plugin-dir <folder> --debug`. Saving the
    module reloads it. A skipped hook is one dim transcript line and a full
    reason in the debug log.

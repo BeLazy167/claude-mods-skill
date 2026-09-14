@@ -21,6 +21,8 @@ Version numbers are where it was seen. Re-check on the build you run.
 | Tool ran, model told it was refused | `deny` returned after `next(e)` | Deny before `next`. |
 | `{ deny: '' }` wrote the file (2.1.260) | Empty deny treated as allow | Fixed 2.1.261. Give a reason. |
 | Hook returns `{}` or `undefined` | Treated as skipped, tool runs | Return `next(e)` or a full result. |
+| Deny worked but debug log shows nothing | Denies are not logged (2.1.270) | Check the side effect: the file, the command output, the model's reply. |
+| `[WARN] plugin x: options requested but its manifest declares no userConfig` | Register signature has `options` but plugin.json has no `userConfig` | Harmless. Drop the parameter or add `userConfig`. |
 | `$.prompt.submit('/foo')` refused | Slash text refused | `$.command.run({ command: 'foo' })`. |
 | Hook skipped after 10 s | Dispatch budget | Do the work in `session.start` plus `$.clock`. |
 | Throw inside hook | Hook skipped, chain continues beneath | Catch it yourself, or add `.catch` on the registration. |

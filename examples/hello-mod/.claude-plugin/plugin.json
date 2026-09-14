@@ -2,5 +2,6 @@
   "name": "hello-mod",
   "version": "0.1.0",
   "description": "Starter mod: logs each tool call and blocks Bash commands that contain rm -rf.",
+  "author": { "name": "your-name" },
   "license": "MIT"
 }
