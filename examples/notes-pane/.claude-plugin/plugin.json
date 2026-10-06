@@ -1,0 +1,10 @@
+{
+  "name": "notes-pane",
+  "version": "0.1.0",
+  "description": "Example: /note saves to $.store, /notes opens a pane with a Clear button",
+  "author": {
+    "name": "BeLazy167"
+  },
+  "license": "MIT",
+  "types": "./types/index.d.ts"
+}

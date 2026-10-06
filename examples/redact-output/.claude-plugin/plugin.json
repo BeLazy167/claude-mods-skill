@@ -1,0 +1,9 @@
+{
+  "name": "redact-output",
+  "version": "0.1.0",
+  "description": "Example: rewrites Bash output so the model never reads tokens",
+  "author": {
+    "name": "BeLazy167"
+  },
+  "license": "MIT"
+}

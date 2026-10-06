@@ -11,10 +11,12 @@ export const register: Register = (on) => {
     $.ui.log(`hello-mod: ${e.tool}`)
 
     // Deny must happen before next(e). After next the tool already ran.
-    if (e.tool === 'Bash' && typeof e.command === 'string' && e.command.includes('rm -rf')) {
+    if (e.tool === 'Bash' && e.command.includes('rm -rf')) {
       return { deny: 'hello-mod: rm -rf is blocked' }
     }
 
     return next(e)
   })
+    // A guard that throws is skipped and the tool runs. This makes it fail closed.
+    .catch(($, e, next) => (next.called ? next(e) : { deny: 'hello-mod: guard failed' }))
 }
