@@ -1,0 +1,10 @@
+{
+  "name": "branch-band",
+  "version": "0.1.0",
+  "description": "Example: band above the prompt with the git branch, from $.process.run on a timer, held in $.state",
+  "author": {
+    "name": "BeLazy167"
+  },
+  "license": "MIT",
+  "types": "./types/index.d.ts"
+}

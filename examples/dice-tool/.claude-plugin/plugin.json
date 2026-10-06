@@ -1,0 +1,9 @@
+{
+  "name": "dice-tool",
+  "version": "0.1.0",
+  "description": "Example: registers a tool the model can call and answers it",
+  "author": {
+    "name": "BeLazy167"
+  },
+  "license": "MIT"
+}

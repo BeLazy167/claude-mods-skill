@@ -5,85 +5,112 @@ description: Use when asked to build, extend or debug a Claude Mod, a Claude Cod
 
 # Creating Claude Mods
 
-A mod is a Claude Code plugin whose behaviour is a TypeScript module that
-runs inside Claude Code. One file exports `register(on)`. Each hook is
-`($, e, next)`. Not a shell command hook. Not JSON on stdin.
+A mod is a Claude Code plugin whose behaviour is a TypeScript or JavaScript
+module that runs inside Claude Code. One file exports `register(on)`. Each
+hook is `($, e, next)`. Not a shell command hook. Not JSON on stdin.
+
+Mods are on by default from Claude Code 2.1.287. No flag. The old
+`CLAUDE_CODE_ENABLE_FUNCTION_HOOKS` is ignored; remove it.
 
 **Do not guess the API.** It is early access and changes between releases.
-The generated declarations are the only reference. The built-in
-`plugin-authoring` skill explains the runtime model; read it for `ui.render`,
-`turn.step`, background work and tool registration.
+The built-in `plugin-authoring` skill is the source of truth for the running
+build: it names this build's types file, the session's mods folder and the
+hot-reload flow. Load it first. This skill adds tested example mods to copy,
+traps seen on real builds, and how to prove and ship a mod.
 
 ## Workflow
 
-1. **Flag on.** Mods load only with `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1`.
-   Put it in `~/.claude/settings.json` under `env`. Off means silent no-op.
-2. **Copy the example.** Copy `examples/hello-mod/` from this plugin's root
-   to the new plugin folder. Rename in `plugin.json`. It already has the
-   three files a mod needs and a working `tool.call` hook.
-3. **Types, when the hook body changes.** `/plugin-types` is an in-session
-   slash command with no CLI form. Run it in an interactive session in that
-   folder. It writes `.claude/types/claude-code.d.ts` from the running build.
-   Read it for the event's `e` shape, the `$` nouns, and the `tsconfig` in
-   its header. Skip this step if you only renamed the example. Never
-   hand-edit the file. Never commit it.
-4. **Write the hook.** One `on(event, matcher?, hook)` per event per module.
-   Return without `next` to answer alone. `next(e)` to continue. Rewrite with
-   `next({ ...e, ... })`.
-5. **Validate.** `claude plugin validate <folder>`. It prints what the module
-   hooks and calls on `$`. It checks shape, not whether a noun exists.
-6. **Prove it from the CLI.** Run `examples/hello-mod/smoke.sh <folder> <plugin-name>`.
-   It runs `claude -p --plugin-dir` with a debug file, greps for
-   `hooks module <name> loaded`, then asks for `rm -rf` on a temp file and
-   checks the file survived. A deny writes nothing to the debug log. Prove a
-   deny by its side effect, never by the log.
-7. **Iterate live.** `claude --plugin-dir <folder> --debug`. Saving the
-   module reloads it. A skipped hook is one dim transcript line and a full
-   reason in the debug log.
-8. **Ship.** Add `.claude-plugin/marketplace.json` so the repo is its own
-   marketplace. Users run `claude plugin marketplace add <owner>/<repo>` then
-   `claude plugin install <name>@<marketplace-name>`. The marketplace name is
-   the `name` field in marketplace.json, not the repo name.
+1. **Load `plugin-authoring`.** Follow its WHERE TO WRITE IT for a mod made in
+   this session. For a mod the person keeps in a repo, use a folder they own.
+2. **Copy the closest example.** Pick from the table below. Each one passes
+   validate, test and `tsc` on the build in `scripts/check.sh`. Rename it in
+   `plugin.json`. The name must not start with `claude-` or `cc-plugin-`;
+   validate rejects names that look like Anthropic's own.
+3. **Read the types for the event.** Claude Code writes them on every load
+   into `<mod>/.claude-plugin/types/`, plus a root `tsconfig.json` that
+   extends them. There is no command to run. Before the first load, use the
+   types file `plugin-authoring` names. Grep for the event (`'tool.call'`)
+   and read the declaration. Never edit or commit `.claude-plugin/types/`.
+4. **Write the hook.** One `on(event, matcher?, hook)` per event per module,
+   or one per distinct matcher. Return without `next` to answer alone.
+   `next(e)` to continue. Rewrite with `next({ ...e, ... })`. Give every hook
+   that can refuse something a `.catch` (see the quick reference).
+5. **Validate.** `claude plugin validate <mod>`. It lists what the module
+   hooks and calls, its `$.state` reads and writes, and each gating hook with
+   or without `.catch`. It checks the module the way the engine loads it.
+6. **Test.** Write `tests/*.test.ts` and run `claude plugin test` in the mod
+   folder. No session, no network. Copy the test from the closest example.
+7. **Type-check.** `npx -p typescript@5 tsc -p <mod> --noEmit` once the types
+   are laid.
+8. **Prove it live.** `claude --plugin-dir <mod>`. Saving a file hot-reloads
+   it. A failed hook or module prints one dim transcript line with the reason.
+   `claude --debug` has the full log. For a guard, prove the deny by its side
+   effect: `examples/hello-mod/smoke.sh` shows how.
+9. **Ship.** See Sharing below.
 
-## The three files
+## Examples to copy
 
-```
-my-mod/
-  .claude-plugin/plugin.json   name, version, description
-  hooks/hooks.json             { "modules": ["./register.ts"] }
-  hooks/register.ts            export function register(on) { on(...) }
-```
+All live in `examples/` at this plugin's root. Read the whole folder: the
+hooks module, its `tests/`, and `types/` where present.
 
-`hooks.json` with `modules` is what loads the module. A `register.ts` alone
-loads the plugin and nothing else. That is the most common silent failure.
+| Task | Example | Shows |
+|---|---|---|
+| Block a tool call | `hello-mod` | `tool.call` deny before `next`, fail-closed `.catch`, `smoke.sh` |
+| Change a tool's output before the model reads it | `redact-output` | `await next(e)`, answer with a new `{ result }`, `.catch` that refuses, `$.ui.status` |
+| A line or band above the prompt | `branch-band` | `ui.render` on `AbovePrompt`, `$.process.run`, `$.clock.every` from `session.start`, `$.state` with a types contract, mount test |
+| A slash command and a pane | `notes-pane` | `$.command.register`, `command.run` with args, `$.ui.open`, Pane render, Button `onPress`, `$.store` across sessions |
+| A tool the model can call | `dice-tool` | `$.tool.register` in `session.start`, `tool.call` on `mcp__<plugin>__<tool>`, `isError` result |
+
+For larger patterns (Client modules, model calls, policy guards, noun
+contracts), read the public mods in `references/examples.md`.
 
 ## Quick reference
 
 | Need | Write |
 |---|---|
 | Block a tool call | `return { deny: 'reason' }` before calling `next` |
+| Fail closed when a guard throws | `on(...).catch(($, e, next) => next.called ? next(e) : { deny: 'why' })` |
 | Change a call | `return next({ ...e, command: rewritten })` |
-| Change the result | `const r = await next(e); return { ...r, text }` |
-| Transcript line | `$.ui.log('text')` |
-| Persist across sessions | `$.store.get / set` |
+| Change the result | `const r = await next(e); return { result: { ...r.result, stdout } }` |
+| Answer a call without running the tool | `return { result: 'text' }` |
+| Transcript line, status, toast | `$.ui.log(text)`, `$.ui.status(text)`, `$.ui.toast(text)` |
+| Values a drawing reads | `atom(ref, initial)`, `read($, atom)`, `update($, atom, fn)` from `'claude-code'`, declared in `types/index.d.ts` |
+| Persist across sessions | `$.store.get / set / delete` |
 | Timer that outlives a dispatch | start it in `session.start`, use `$.clock.every` |
-| Every event | `on('*', ...)` |
+| Run a host command | `$.process.run(['git', 'status'])` (argv, no shell) |
+| Run a slash command | `$.command.run({ command: 'compact' })`, not `$.prompt.submit` |
+| Every event | `on('*', ...)`; a namespace: `on('tool.*', ...)` |
 
 ## Rules the loader enforces
 
-- `$` is written literally as `$.noun.verb(...)`. Never bind, pass, spread or destructure it.
-- Imports: relative files and `claude-code` (types only). No node, no npm.
-- Event name in `on()` is a string literal. Matcher is a plain object literal.
-- One plain hook per event per module. A second `on('tool.call')` throws.
-- `deny` after `next` does nothing useful. The tool already ran.
+- Write `$` calls in full: `$.noun.verb(...)`. Never assign, destructure or
+  computed-index `$` or a noun. You may pass `$` to a function declared at
+  the top level of the same file, and to `read`/`update`. Not to an inner or
+  imported function.
+- Imports: relative files of the plugin and `claude-code`. No Node, no npm,
+  no `require`, no dynamic `import()`. Every file is an ES module.
+- The event name in `on()` is a string literal. The matcher is a plain object literal.
+- Do not redeclare `on` inside `register`.
+- Two plain hooks on one event in one module fail. Merge them or give each a matcher.
+- A `deny` after `next` undoes nothing. The tool already ran.
+
+## Sharing
+
+1. Copy the mod out of the session's mods folder (it is deleted after
+   `cleanupPeriodDays`) into a repo you keep.
+2. Add `.claude-plugin/marketplace.json` beside `plugin.json`, with one
+   entry whose `source` is `"./"`. `claude plugin validate .` checks both.
+3. The install line for a README:
+   `/plugin install <mod> --marketplace <owner>/<repo>` at the Claude Code
+   prompt, or `claude plugin marketplace add <owner>/<repo>` then
+   `claude plugin install <mod>@<marketplace-name>`. The marketplace name is
+   the `name` in marketplace.json, not the repo name.
+4. Bump `version` in `plugin.json` on every release. Installed copies are
+   cached by version, so users get nothing new without it.
+5. Say in the README which Claude Code version you tested with.
 
 ## Common mistakes
 
 See `references/gotchas.md` for the version-tagged list. Top three:
-`hooks.json` missing, `$.prompt.submit` with a `/command` (use
-`$.command.run`), and background subagents only firing `tool.call`.
-
-## Reference mods
-
-See `references/examples.md` for public mods to read before writing a
-render, a PR watcher or a redactor.
+`hooks/hooks.json` missing, a guard without `.catch` that fails open, and a
+`claude-` plugin name that validate rejects.
